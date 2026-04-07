@@ -1,0 +1,47 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__code-review-graph__build_or_update_graph_tool",
+      "Bash(mvn test:*)",
+      "Bash(mvn clean:*)",
+      "Bash(find:*)",
+      "Bash(mvn dependency:tree -Dincludes=org.mockito)",
+      "Bash(mvn dependency:tree)",
+      "Bash(sed:*)",
+      "Bash(curl -s http://localhost:8080/api/auth/user)",
+      "Bash(open:*)",
+      "Bash(curl:*)",
+      "Bash(lsof -ti:8080)",
+      "Bash(xargs kill:*)",
+      "Bash(export GEMINI_API_KEY=\"AIzaSyCpNtxry1pQCnED0ryM4vCq-Pf-zQbDuvU\")",
+      "Bash(python3 -m json.tool)",
+      "Bash(GEMINI_API_KEY=\"AIzaSyCpNtxry1pQCnED0ryM4vCq-Pf-zQbDuvU\" mvn spring-boot:run)",
+      "Read(//tmp/**)",
+      "Bash(printenv GEMINI_API_KEY)",
+      "Bash(ps eww:*)",
+      "Bash(kill 43800 43854)",
+      "Bash(mvn compile:*)",
+      "Bash(pkill -f \"habitflow.HabitFlowApplication\")",
+      "Bash(GEMINI_API_KEY=\"AIzaSyCpNtxry1pQCnED0ryM4vCq-Pf-zQbDuvU\" nohup mvn spring-boot:run)",
+      "Bash(Running: daily, streak:10\",\"userName\":\"TestUser\"}' | python3 -m json.tool)",
+      "Bash(nohup mvn:*)",
+      "mcp__code-review-graph__list_graph_stats_tool",
+      "Bash(mvn spring-boot:run)",
+      "mcp__code-review-graph__list_communities_tool",
+      "mcp__code-review-graph__refactor_tool",
+      "Bash(kill 44794)",
+      "Bash(kill 46039)",
+      "Bash(tee /tmp/zenko_test.html)",
+      "mcp__code-review-graph__list_repos_tool",
+      "Bash(export OPENROUTER_API_KEY=\"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\")",
+      "Bash(kill:*)",
+      "Bash(chmod +x:*)",
+      "Bash(pkill -f \"zenko\")",
+      "Bash(OPENROUTER_API_KEY=\"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\" mvn spring-boot:run)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "code-review-graph"
+  ]
+}
