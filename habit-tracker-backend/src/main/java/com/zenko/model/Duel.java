@@ -54,6 +54,9 @@ public class Duel {
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "habit_id")
+    private Long habitId;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -89,4 +92,6 @@ public class Duel {
     public void setStartDate(LocalDateTime startDate) { this.startDate = startDate; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public Long getHabitId() { return habitId; }
+    public void setHabitId(Long habitId) { this.habitId = habitId; }
 }

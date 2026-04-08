@@ -171,6 +171,9 @@ public class OpenRouterService {
                 "Return ONLY valid JSON array, no markdown wrapper.",
                 userName, habitSummary);
         String result = generate(prompt, null);
+        if (result != null) {
+            result = cleanJsonResponse(result);
+        }
         return result != null ? result : demoInsightsJson();
     }
 
@@ -184,6 +187,9 @@ public class OpenRouterService {
                 "Make them specific to the user's actual habits. Return ONLY valid JSON array.",
                 habitsSummary);
         String result = generate(prompt, null);
+        if (result != null) {
+            result = cleanJsonResponse(result);
+        }
         return result != null ? result : demoQuestsJson();
     }
 
@@ -201,6 +207,27 @@ public class OpenRouterService {
                 message);
         String result = generate(prompt, null);
         return result != null ? result : demoChatReply(message, habitContext);
+    }
+
+    public String generateHabitList(String persona, int count, String additionalContext) {
+        if (!isConfigured()) return demoHabitList(persona, count);
+        String prompt = String.format(
+                "You are an AI that generates personalized habit lists. " +
+                "Generate a list of %d healthy habits for someone who wants to be '%s'. " +
+                "Additional context: %s\n\n" +
+                "Return a JSON array of objects with fields: " +
+                "name (string, ≤5 words), " +
+                "category (one of: health, mind, learn, work, social, finance, sleep, custom), " +
+                "description (1 sentence, practical), " +
+                "frequency (daily, weekly, or monthly), " +
+                "emoji (1 relevant emoji). " +
+                "Make habits specific, actionable, and varied. Return ONLY valid JSON array.",
+                count, persona, additionalContext.isEmpty() ? "None" : additionalContext);
+        String result = generate(prompt, null);
+        if (result != null) {
+            result = cleanJsonResponse(result);
+        }
+        return result != null ? result : demoHabitList(persona, count);
     }
 
     // ── Demo implementations ── (unchanged from GeminiService)
@@ -277,6 +304,30 @@ public class OpenRouterService {
         return "That's a great question! 🤔 Consistency is the real secret to lasting habits — small daily actions compound into extraordinary results over months. What specific habit challenge would you like to tackle today?";
     }
 
+    private String demoHabitList(String persona, int count) {
+        StringBuilder json = new StringBuilder("[");
+        String[][] samples = {
+            {"Drink 8oz water immediately upon waking", "health", "Hydrates body and kickstarts metabolism", "daily", "💧"},
+            {"10-minute morning meditation", "mind", "Reduces anxiety and improves focus", "daily", "🧘"},
+            {"Read 20 pages before bed", "learn", "Expands knowledge without pressure", "daily", "📚"},
+            {"Write 3 things you're grateful for", "mind", "Trains brain for positivity", "daily", "🙏"},
+            {"5-minute evening planning", "work", "Sets clear intentions for tomorrow", "daily", "📝"},
+            {"No screens 1 hour before bed", "sleep", "Improves sleep quality and duration", "daily", "🌙"},
+            {"Daily budgeting session", "finance", "Tracks spending and builds wealth mindset", "daily", "💰"},
+            {"1 hour deep work session", "work", "High-value focused output", "daily", "🎯"},
+            {"Weekly digital detox", "mind", "Reduces information overload", "weekly", "📵"},
+            {"30-min cardio 3x/week", "health", "Cardiovascular health and energy", "weekly", "🏃"}
+        };
+        for (int i = 0; i < Math.min(count, samples.length); i++) {
+            if (i > 0) json.append(",");
+            json.append(String.format(
+                "{\"name\":\"%s\",\"category\":\"%s\",\"description\":\"%s\",\"frequency\":\"%s\",\"emoji\":\"%s\"}",
+                samples[i][0], samples[i][1], samples[i][2], samples[i][3], samples[i][4]));
+        }
+        json.append("]");
+        return json.toString();
+    }
+
     // ── Request/Response DTOs for OpenRouter ──
 
     private static class ChatRequest {
@@ -299,5 +350,26 @@ public class OpenRouterService {
             this.role = role;
             this.content = content;
         }
+    }
+
+    // ── Utility: strip markdown code fences from AI responses ──
+    private String cleanJsonResponse(String text) {
+        if (text == null) return null;
+        String trimmed = text.trim();
+        // Remove markdown code fences (```json, ```)
+        if (trimmed.startsWith("```")) {
+            // Find the end of the first line (after language specifier if any)
+            int firstNewline = trimmed.indexOf('\n');
+            if (firstNewline != -1) {
+                trimmed = trimmed.substring(firstNewline + 1);
+            }
+            // Remove trailing fence
+            if (trimmed.endsWith("```")) {
+                trimmed = trimmed.substring(0, trimmed.length() - 3);
+            } else if (trimmed.endsWith("```\n")) {
+                trimmed = trimmed.substring(0, trimmed.length() - 4);
+            }
+        }
+        return trimmed.trim();
     }
 }

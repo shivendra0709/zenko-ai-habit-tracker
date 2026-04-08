@@ -12,4 +12,7 @@ public interface DuelRepository extends JpaRepository<Duel, Long> {
     List<Duel> findByOpponent_Id(Long userId);
     List<Duel> findByChallenger_IdOrOpponent_Id(Long userId1, Long userId2);
     Optional<Duel> findByInviteCode(String inviteCode);
+    List<Duel> findByHabitIdAndStatus(Long habitId, String status);
+    List<Duel> findByHabitIdAndChallenger_Id(Long habitId, Long userId);
+    List<Duel> findByHabitIdAndOpponent_Id(Long habitId, Long userId);
 }

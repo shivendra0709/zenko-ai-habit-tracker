@@ -3,8 +3,10 @@ package com.zenko.controller;
 import com.zenko.model.AppUser;
 import com.zenko.model.Duel;
 import com.zenko.model.Bond;
+import com.zenko.model.Habit;
 import com.zenko.repository.DuelRepository;
 import com.zenko.repository.BondRepository;
+import com.zenko.repository.HabitRepository;
 import com.zenko.service.OpenRouterService;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import jakarta.servlet.http.HttpSession;
@@ -25,6 +27,7 @@ public class SocialController {
     @Autowired private DuelRepository duelRepo;
     @Autowired private BondRepository bondRepo;
     @Autowired private com.zenko.repository.AppUserRepository userRepo;
+    @Autowired private com.zenko.repository.HabitRepository habitRepo;
 
     // Cities for anonymous feed
     private static final String[] CITIES = {
@@ -97,8 +100,52 @@ public class SocialController {
         duel.setStatus("pending");
         duel.setStartDate(LocalDateTime.now());
 
+        // Store habitId if provided
+        Object habitIdObj = body.get("habitId");
+        if (habitIdObj != null) {
+            try {
+                Long habitId = Long.parseLong(habitIdObj.toString());
+                duel.setHabitId(habitId);
+            } catch (NumberFormatException e) {
+                // Ignore invalid habitId
+            }
+        }
+
         duel = duelRepo.save(duel);
         return ResponseEntity.ok(duelToMap(duel));
+    }
+
+    @DeleteMapping("/duels/{id}")
+    public ResponseEntity<?> leaveDuel(HttpSession session, @PathVariable Long id) {
+        Long userId = getUserId(session);
+        if (userId == null) return ResponseEntity.status(401).build();
+
+        Duel duel = duelRepo.findById(id).orElse(null);
+        if (duel == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Duel not found"));
+        }
+
+        // Check if user is involved in this duel
+        boolean isChallenger = duel.getChallenger() != null && duel.getChallenger().getId().equals(userId);
+        boolean isOpponent = duel.getOpponent() != null && duel.getOpponent().getId().equals(userId);
+
+        if (!isChallenger && !isOpponent) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Not authorized"));
+        }
+
+        // If challenger is leaving before opponent joined, delete the duel completely
+        if (isChallenger && duel.getOpponent() == null) {
+            duelRepo.delete(duel);
+            return ResponseEntity.ok(Map.of("message", "Duel cancelled"));
+        }
+
+        // Otherwise, mark as completed or remove the leaving user
+        duel.setStatus("completed");
+        // If opponent leaves, we can keep the record but mark as completed
+        // If challenger leaves after opponent joined, opponent gets a win? For simplicity, just end it.
+        duelRepo.save(duel);
+
+        return ResponseEntity.ok(Map.of("message", "Duel ended"));
     }
 
     @PostMapping("/duels/{code}/join")
@@ -152,6 +199,17 @@ public class SocialController {
         bond.setSharedStreak(0);
         bond.setStatus("pending");
 
+        // Store habitId if provided
+        Object habitIdObj = body.get("habitId");
+        if (habitIdObj != null) {
+            try {
+                Long habitId = Long.parseLong(habitIdObj.toString());
+                bond.setHabitId(habitId);
+            } catch (NumberFormatException e) {
+                // Ignore invalid habitId
+            }
+        }
+
         bond = bondRepo.save(bond);
         return ResponseEntity.ok(bondToMap(bond));
     }
@@ -174,6 +232,29 @@ public class SocialController {
         bondRepo.save(bond);
 
         return ResponseEntity.ok(bondToMap(bond));
+    }
+
+    @DeleteMapping("/bonds/{id}")
+    public ResponseEntity<?> leaveBond(HttpSession session, @PathVariable Long id) {
+        Long userId = getUserId(session);
+        if (userId == null) return ResponseEntity.status(401).build();
+
+        Bond bond = bondRepo.findById(id).orElse(null);
+        if (bond == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Bond not found"));
+        }
+
+        // Check if user is involved in this bond
+        boolean isUser1 = bond.getUser1() != null && bond.getUser1().getId().equals(userId);
+        boolean isUser2 = bond.getUser2() != null && bond.getUser2() != null && bond.getUser2().getId().equals(userId);
+
+        if (!isUser1 && !isUser2) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Not authorized"));
+        }
+
+        // For simplicity, delete the bond. Could also mark as dissolved.
+        bondRepo.delete(bond);
+        return ResponseEntity.ok(Map.of("message", "Bond dissolved"));
     }
 
     // ── AI endpoints ──
@@ -230,12 +311,118 @@ public class SocialController {
         return ResponseEntity.ok(Map.of("reply", reply, "aiGenerated", openRouter.isConfigured()));
     }
 
+    @PostMapping("/ai/generate-habits")
+    @RateLimiter(name = "aiEndpoints")
+    public ResponseEntity<?> generateHabits(HttpSession session, @RequestBody Map<String,Object> body) {
+        if (getEmail(session) == null) return ResponseEntity.status(401).build();
+
+        String persona = (String) body.getOrDefault("persona", "healthy person");
+        int count = ((Number) body.getOrDefault("count", 5)).intValue();
+        String context = (String) body.getOrDefault("context", "");
+
+        String habitsJson = openRouter.generateHabitList(persona, count, context);
+
+        if (habitsJson == null) {
+            return ResponseEntity.ok(Map.of(
+                "habits", new com.fasterxml.jackson.databind.ObjectMapper().createArrayNode(),
+                "aiGenerated", false,
+                "error", "AI not configured or generation failed"
+            ));
+        }
+
+        try {
+            // Parse the JSON array into a list of maps for the frontend
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            var habits = mapper.readValue(habitsJson, java.util.List.class);
+            return ResponseEntity.ok(Map.of(
+                "habits", habits,
+                "aiGenerated", true
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.ok(Map.of(
+                "habits", new java.util.ArrayList<Map<String,Object>>(),
+                "aiGenerated", false,
+                "error", "Failed to parse AI response"
+            ));
+        }
+    }
+
+    // ── Streak updates ──
+    @PostMapping("/duels/{duelId}/increment")
+    public ResponseEntity<?> incrementDuelScore(HttpSession session, @PathVariable Long duelId, @RequestParam Long habitId) {
+        Long userId = getUserId(session);
+        if (userId == null) return ResponseEntity.status(401).build();
+
+        Duel duel = duelRepo.findById(duelId).orElse(null);
+        if (duel == null || !"active".equals(duel.getStatus())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Duel not active or not found"));
+        }
+
+        // Verify habit matches
+        if (!duelId.equals(duel.getHabitId()) && !duel.getHabitName().equals(habitRepo.findById(habitId).map(Habit::getName).orElse(""))) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Habit does not match this duel"));
+        }
+
+        boolean updated = false;
+        if (duel.getChallenger() != null && duel.getChallenger().getId().equals(userId)) {
+            duel.setChallengerScore(duel.getChallengerScore() + 1);
+            updated = true;
+        } else if (duel.getOpponent() != null && duel.getOpponent().getId().equals(userId)) {
+            duel.setOpponentScore(duel.getOpponentScore() + 1);
+            updated = true;
+        }
+
+        if (updated) {
+            duelRepo.save(duel);
+            return ResponseEntity.ok(duelToMap(duel));
+        } else {
+            return ResponseEntity.badRequest().body(Map.of("error", "User not part of this duel"));
+        }
+    }
+
+    @PostMapping("/bonds/{bondId}/increment-streak")
+    public ResponseEntity<?> incrementBondStreak(HttpSession session, @PathVariable Long bondId, @RequestParam Long habitId) {
+        Long userId = getUserId(session);
+        if (userId == null) return ResponseEntity.status(401).build();
+
+        Bond bond = bondRepo.findById(bondId).orElse(null);
+        if (bond == null || !"active".equals(bond.getStatus())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Bond not active or not found"));
+        }
+
+        // Verify habit matches
+        if (!bondId.equals(bond.getHabitId()) && !bond.getHabitName().equals(habitRepo.findById(habitId).map(Habit::getName).orElse(""))) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Habit does not match this bond"));
+        }
+
+        boolean updated = false;
+        if (bond.getUser1() != null && bond.getUser1().getId().equals(userId)) {
+            bond.setUser1Streak(bond.getUser1Streak() + 1);
+            updated = true;
+        } else if (bond.getUser2() != null && bond.getUser2().getId() != null && bond.getUser2().getId().equals(userId)) {
+            bond.setUser2Streak(bond.getUser2Streak() + 1);
+            updated = true;
+        }
+
+        if (updated) {
+            // Check shared streak: if both users have completed today (we'd need completion check)
+            // For now, increment shared streak only if both have incremented on same day
+            // We'll need a separate mechanism to track daily completions for both users
+            // Simplified: shared streak tracks days where both have at least 1 completion
+            bondRepo.save(bond);
+            return ResponseEntity.ok(bondToMap(bond));
+        } else {
+            return ResponseEntity.badRequest().body(Map.of("error", "User not part of this bond"));
+        }
+    }
+
     // ── Converters ──
     private Map<String,Object> duelToMap(Duel d) {
         Map<String,Object> map = new HashMap<>();
         map.put("id", d.getId());
         map.put("inviteCode", d.getInviteCode());
         map.put("habitName", d.getHabitName());
+        map.put("habitId", d.getHabitId());
         map.put("challengerEmail", d.getChallenger() != null ? d.getChallenger().getEmail() : null);
         map.put("challengerName", d.getChallengerName());
         map.put("opponentEmail", d.getOpponentEmail());
@@ -253,6 +440,7 @@ public class SocialController {
         map.put("id", b.getId());
         map.put("inviteCode", b.getInviteCode());
         map.put("habitName", b.getHabitName());
+        map.put("habitId", b.getHabitId());
         map.put("user1Email", b.getUser1() != null ? b.getUser1().getEmail() : null);
         map.put("user1Name", b.getUser1Name());
         map.put("user2Email", b.getUser2Email());

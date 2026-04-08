@@ -51,6 +51,9 @@ public class Bond {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "habit_id")
+    private Long habitId;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -83,4 +86,6 @@ public class Bond {
     public void setStatus(String status) { this.status = status; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public Long getHabitId() { return habitId; }
+    public void setHabitId(Long habitId) { this.habitId = habitId; }
 }

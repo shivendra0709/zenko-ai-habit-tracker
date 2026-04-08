@@ -276,6 +276,9 @@ class ZenkoApp {
       const el = document.getElementById(id);
       if (el) el.addEventListener('click', () => this._openModal());
     });
+    // Social dashboard button
+    const socialFromDash = document.getElementById('socialFromDash');
+    if (socialFromDash) socialFromDash.addEventListener('click', () => this._switchView('social'));
     // Modal
     document.getElementById('modalClose').addEventListener('click', () => this._closeModal());
     document.getElementById('cancelHabit').addEventListener('click', () => this._closeModal());
@@ -427,7 +430,7 @@ class ZenkoApp {
       case 'weekly': this._renderWeekly(); break;
       case 'monthly': this._renderMonthly(); break;
       case 'ai': this._renderAI(); break;
-      case 'social': window.socialModule && window.socialModule.init(); break;
+      case 'social': window.socialModule && window.socialModule.init(this.habits); break;
       case 'game': window.gameModule && window.gameModule.init(); break;
       case 'habits': this._renderAllHabits(); break;
     }
@@ -523,8 +526,18 @@ class ZenkoApp {
     const today = this._today();
     const daily = this.habits.filter(h => h.frequency === 'daily');
     const pending = daily.filter(h => !this._isCompleted(h.id, today)).length;
-    const badge = document.getElementById('todayBadge');
-    if (badge) { badge.textContent = pending; badge.style.display = pending > 0 ? 'inline' : 'none'; }
+    const todayBadge = document.getElementById('todayBadge');
+    if (todayBadge) { todayBadge.textContent = pending; todayBadge.style.display = pending > 0 ? 'inline' : 'none'; }
+
+    // Social badge: show sum of active duels + bonds
+    const duels = window.app?.socialDuels?.length || 0;
+    const bonds = window.app?.socialBonds?.length || 0;
+    const socialCount = duels + bonds;
+    const socialBadge = document.getElementById('socialBadge');
+    if (socialBadge) {
+      socialBadge.textContent = socialCount;
+      socialBadge.style.display = socialCount > 0 ? 'inline' : 'none';
+    }
   }
 
   // ─────────────────────────────────────
@@ -575,6 +588,8 @@ class ZenkoApp {
     this._renderHeatmap();
     // Streaks
     this._renderStreakList();
+    // Social stats
+    this._loadDashboardSocial();
 
     this._updateBadge();
   }
@@ -646,6 +661,72 @@ class ZenkoApp {
         <div class="streak-bar-wrap"><div class="streak-bar-fill" style="width:${(h.streak/max)*100}%;background:${h.color}"></div></div>
         <div class="streak-count">🔥 ${h.streak}d</div>
       </div>`).join('');
+  }
+
+  async _loadDashboardSocial() {
+    const card = document.getElementById('socialDashCard');
+    const feedContainer = document.getElementById('dashSocialFeed');
+    if (!card || !feedContainer) return;
+
+    try {
+      // Use preloaded data if available (set by the hook)
+      let duels, bonds, feed;
+      if (window.app?.socialPreloaded) {
+        duels = window.app.socialDuels || [];
+        bonds = window.app.socialBonds || [];
+        feed = window.app.socialFeed || [];
+      } else {
+        // Fetch from API
+        const [duelsRes, bondsRes, feedRes] = await Promise.all([
+          fetch('/api/social/duels', { credentials: 'include' }),
+          fetch('/api/social/bonds', { credentials: 'include' }),
+          fetch('/api/social/feed', { credentials: 'include' })
+        ]);
+        duels = duelsRes.ok ? await duelsRes.json() : [];
+        bonds = bondsRes.ok ? await bondsRes.json() : [];
+        feed = feedRes.ok ? await feedRes.json() : [];
+        // Store for badge and future use
+        window.app.socialDuels = duels;
+        window.app.socialBonds = bonds;
+        window.app.socialFeed = feed;
+      }
+
+      // Update counts
+      document.getElementById('dashDuelsCount').textContent = duels.filter(d => d.status === 'active').length;
+      document.getElementById('dashBondsCount').textContent = bonds.filter(b => b.status === 'active').length;
+      document.getElementById('dashFeedCount').textContent = feed.length;
+
+      // Show recent feed items (last 3)
+      if (feed.length > 0) {
+        const recentFeed = feed.slice(0, 3);
+        feedContainer.innerHTML = recentFeed.map(e => {
+          const ago = e.minutesAgo ? `${e.minutesAgo}m ago` : 'just now';
+          const streakBadge = e.streak > 1 ? `<span style="font-size:10px;color:var(--orange);font-weight:600">🔥 ${e.streak}d</span>` : '';
+          return `<div class="dash-feed-item">
+            <div class="dash-feed-emoji">${e.emoji || '✅'}</div>
+            <div class="dash-feed-info">
+              <div class="dash-feed-main">${e.habit} <span style="color:var(--text3)">in</span> ${e.city}</div>
+              <div class="dash-feed-sub">${e.isReal ? '🟢 Real user' : '🌐 Global'} · ${streakBadge}</div>
+            </div>
+            <div class="dash-feed-time">${ago}</div>
+          </div>`;
+        }).join('');
+      } else {
+        feedContainer.innerHTML = '<div class="empty-state" style="padding:12px;text-align:center"><p>No recent activity. Be the first! 🌟</p></div>';
+      }
+
+      // Show the social card if there's any activity or if user has duels/bonds
+      if (duels.length > 0 || bonds.length > 0 || feed.length > 0) {
+        card.style.display = 'block';
+      }
+
+      // Update nav badge
+      this._updateBadge();
+
+    } catch (e) {
+      console.error('Dashboard social load error:', e);
+      if (feedContainer) feedContainer.innerHTML = '<div class="feed-error">Unable to load social updates</div>';
+    }
   }
 
   // ─────────────────────────────────────
@@ -957,7 +1038,7 @@ class ZenkoApp {
     this._appendChatTyping(typingId);
 
     try {
-      // Build habit context to send to Gemini
+      // Build habit context to send to OpenRouter
       const today = this._today();
       const habitCtx = this.habits.map(h => {
         const streak = this._getStreak(h.id);
@@ -1378,7 +1459,106 @@ window.aiCoachModule = {
       this._show('alertResult', `<p>⚡ <strong>${habit.name}</strong> — Risk Alert</p><p>${d.alert}</p>`);
     } catch { this._show('alertResult', '<p>Unable to connect.</p>'); }
   },
-  init(habits) {
+
+  async generateHabits() {
+    const persona = document.getElementById('habitPersona')?.value || 'healthy person';
+    const count = parseInt(document.getElementById('habitCount')?.value) || 5;
+    const context = document.getElementById('habitContext')?.value || '';
+    const container = document.getElementById('generatedHabitsList');
+
+    if (!container) return;
+
+    container.innerHTML = '<div class="ai-loading"><div class="spin"></div> Generating habits with AI...</div>';
+
+    try {
+      const r = await fetch('/api/social/ai/generate-habits', {
+        method: 'POST', credentials: 'include',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ persona, count, context })
+      });
+      const d = await r.json();
+
+      if (d.habits && d.habits.length > 0) {
+        container.innerHTML = d.habits.map(h => `
+          <div class="generated-habit card" style="margin-bottom:8px;padding:14px;display:flex;align-items:center;gap:12px;">
+            <div style="font-size:24px">${h.emoji || '🎯'}</div>
+            <div style="flex:1">
+              <div style="font-weight:700;color:var(--text);margin-bottom:2px">${h.name}</div>
+              <div style="font-size:11px;color:var(--text3);margin-bottom:6px">${h.description}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <span style="font-size:10px;padding:2px 8px;border-radius:12px;background:var(--primary-light);color:var(--primary);font-weight:600">${h.category}</span>
+                <span style="font-size:10px;padding:2px 8px;border-radius:12px;background:var(--bg3);color:var(--text2);font-weight:600">${h.frequency}</span>
+              </div>
+            </div>
+            <button class="btn-primary" style="padding:8px 12px;font-size:12px" onclick="window.socialModule?.addAIGeneratedHabit(${JSON.stringify(h).replace(/"/g, '&quot;')})">+ Add</button>
+          </div>
+        `).join('');
+      } else {
+        container.innerHTML = '<p style="color:var(--text3);font-size:13px">Could not generate habits. AI may not be configured. Check server logs.</p>';
+      }
+    } catch (e) {
+      container.innerHTML = '<p style="color:var(--red);font-size:13px">Error generating habits. Please try again.</p>';
+    }
+  },
+
+  // Helper to add AI-generated habit to the list
+  async addAIGeneratedHabit(habitData) {
+    // Convert to our habit format
+    const habit = {
+      name: habitData.name,
+      emoji: habitData.emoji,
+      category: habitData.category,
+      frequency: habitData.frequency,
+      description: habitData.description,
+      color: this.categoryColor(habitData.category),
+      time: '09:00', // default
+      currentStreak: 0,
+      bestStreak: 0
+    };
+
+    if (window.app) {
+      if (window.app.isApiMode) {
+        try {
+          const res = await fetch('/api/habits', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(habit),
+            credentials: 'include'
+          });
+          const saved = await res.json();
+          window.app.habits.push(saved);
+          window.app._toast(`Added "${saved.name}" to your habits!`, 'success');
+        } catch (e) {
+          window.app._toast('Failed to save habit. Please try again.', 'error');
+          return;
+        }
+      } else {
+        // LocalStorage mode
+        habit.id = Date.now();
+        habit.createdAt = window.app._today();
+        window.app.habits.push(habit);
+        window.app._save();
+        window.app._toast(`Added "${habit.name}" to your habits!`, 'success');
+      }
+      // Refresh views
+      if (window.app.currentView === 'habits') window.app._renderAllHabits();
+      // Update the autopsy habit select dropdown
+      if (this._populate && window.app) {
+        this._populate(document.getElementById('autopsyHabitSelect'), window.app.habits);
+      }
+    }
+  },
+
+  categoryColor(cat) {
+    const colors = {
+      health: '#ef4444', mind: '#6366f1', learn: '#8b5cf6',
+      work: '#22c55e', social: '#f97316', finance: '#eab308',
+      sleep: '#64748b', custom: '#ec4899'
+    };
+    return colors[cat] || '#6366f1';
+  },
+
+  init(habits, preload = false) {
     // Populate habit selects
     this._populate(document.getElementById('autopsyHabitSelect'), habits);
     // Check AI status
@@ -1387,10 +1567,13 @@ window.aiCoachModule = {
       .then(d => {
         const badge = document.getElementById('aiKeyBadge');
         if (badge) {
-          if (d.aiConfigured) { badge.textContent = '🟢 Gemini Live'; badge.classList.add('live'); }
+          if (d.aiConfigured) { badge.textContent = '🟢 OpenRouter AI'; badge.classList.add('live'); }
           else { badge.textContent = '🟡 Demo Mode'; }
         }
       }).catch(() => {});
+    // Bind generate habits button
+    const genBtn = document.getElementById('generateHabitsBtn');
+    if (genBtn) genBtn.onclick = () => this.generateHabits();
   }
 };
 
@@ -1399,33 +1582,16 @@ window.aiCoachModule = {
 // ═══════════════════════════════════════════════════════════
 window.socialModule = {
   feedInterval: null,
+  duels: [],
+  bonds: [],
+  feed: [],
 
-  // Safe toast that works even if app not fully ready
-  _safeToast(msg, type = 'success') {
-    if (window.app && typeof window.app.showToast === 'function') {
-      window.app.showToast(msg, type);
-    } else {
-      // Fallback: create a simple toast manually
-      const stack = document.getElementById('toastStack');
-      if (stack) {
-        const icons = { success:'✅', error:'❌', info:'ℹ️' };
-        const t = document.createElement('div');
-        t.className = `toast ${type}`;
-        t.innerHTML = `<span class="toast-icon">${icons[type]}</span><span>${msg}</span>`;
-        stack.appendChild(t);
-        setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(50px)'; t.style.transition = '.3s ease'; setTimeout(() => t.remove(), 300); }, 3000);
-      } else {
-        console.log(`[${type}] ${msg}`);
-      }
-    }
-  },
-
-  init() {
+  async init(preload = false) {
     this._bindTabs();
-    this._loadFeed();
-    this._loadDuels();
-    this._loadBonds();
-    if (!this.feedInterval) {
+    await this._loadFeed();
+    await this._loadDuels();
+    await this._loadBonds();
+    if (!preload && !this.feedInterval) {
       this.feedInterval = setInterval(() => this._loadFeed(), 12000);
     }
     this._bindActions();
@@ -1463,6 +1629,7 @@ window.socialModule = {
         return;
       }
       const events = await r.json();
+      this.feed = events; // store for external use
       el.innerHTML = events.map(e => this._feedItemHTML(e)).join('');
     } catch (e) {
       console.error('Feed error:', e);
@@ -1495,7 +1662,15 @@ window.socialModule = {
         return;
       }
       const duels = await r.json();
+      this.duels = duels; // store for external use
       el.innerHTML = duels.map(d => this._duelHTML(d)).join('') || '<div class="feed-empty">No active duels. Create one!</div>';
+      // Bind leave buttons
+      el.querySelectorAll('.unpair-btn').forEach(btn => {
+        btn.onclick = (e) => {
+          const duelId = parseInt(e.target.dataset.duelId);
+          if (duelId) this._leaveDuel(duelId);
+        };
+      });
     } catch (e) {
       console.error('Duels error:', e);
       el.innerHTML = '<div class="feed-error">Error loading duels</div>';
@@ -1505,10 +1680,11 @@ window.socialModule = {
   _duelHTML(d) {
     const total = d.daysTotal || 30;
     const challPct = Math.min(100, Math.round((d.challengerScore / total) * 100));
-    return `<div class="duel-card">
+    const isActive = d.status === 'active';
+    return `<div class="duel-card" data-duel-id="${d.id}">
       <div class="duel-header">
         <div class="duel-title">⚔️ ${d.habitName}</div>
-        <span class="duel-status ${d.status}">${d.status === 'active' ? '🟢 LIVE' : '⏳ Pending'}</span>
+        <span class="duel-status ${d.status}">${isActive ? '🟢 LIVE' : '⏳ Pending'}</span>
       </div>
       <div class="duel-vs">
         <div class="duel-player"><div class="duel-player-name">${d.challengerName || 'You'}</div><div class="duel-score">${d.challengerScore}</div></div>
@@ -1517,6 +1693,7 @@ window.socialModule = {
       </div>
       <div class="duel-bar-wrap"><div class="duel-bar-fill" style="width:${challPct}%"></div></div>
       <div class="duel-code">Invite Code: <strong>${d.inviteCode}</strong> · ${total - Math.max(d.challengerScore, d.opponentScore)} days left</div>
+      <button class="unpair-btn" data-duel-id="${d.id}" style="margin-top:10px;width:100%;padding:8px;border-radius:8px;background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.3);font-size:12px;font-weight:600;cursor:pointer;">Leave Duel</button>
     </div>`;
   },
 
@@ -1531,7 +1708,15 @@ window.socialModule = {
         return;
       }
       const bonds = await r.json();
+      this.bonds = bonds; // store for external use
       el.innerHTML = bonds.map(b => this._bondHTML(b)).join('') || '<div class="feed-empty">No bonds yet. Create one!</div>';
+      // Bind leave buttons
+      el.querySelectorAll('.unpair-btn').forEach(btn => {
+        btn.onclick = (e) => {
+          const bondId = parseInt(e.target.dataset.bondId);
+          if (bondId) this._leaveBond(bondId);
+        };
+      });
     } catch (e) {
       console.error('Bonds error:', e);
       el.innerHTML = '<div class="feed-error">Error loading bonds</div>';
@@ -1539,7 +1724,7 @@ window.socialModule = {
   },
 
   _bondHTML(b) {
-    return `<div class="bond-card">
+    return `<div class="bond-card" data-bond-id="${b.id}">
       <div class="bond-title">🤝 ${b.habitName}</div>
       <div class="bond-users">
         <div class="bond-user"><div class="bond-user-name">${b.user1Name}</div><div class="bond-user-streak">${b.user1Streak} 🔥</div></div>
@@ -1547,23 +1732,28 @@ window.socialModule = {
         <div class="bond-user"><div class="bond-user-name">${b.user2Name}</div><div class="bond-user-streak">${b.user2Streak} 🔥</div></div>
       </div>
       <div class="bond-shared">Shared Streak: ${b.sharedStreak} 🔥 ${b.status === 'pending' ? '· Invite Code: <strong>' + b.inviteCode + '</strong>' : ''}</div>
+      <button class="unpair-btn" data-bond-id="${b.id}" style="margin-top:10px;width:100%;padding:8px;border-radius:8px;background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.3);font-size:12px;font-weight:600;cursor:pointer;">Dissolve Bond</button>
     </div>`;
   },
 
   async _createDuel() {
     const habits = window.app?.habits || [];
-    if (!habits.length) { this._safeToast('Add a habit first', 'error'); return; }
-    const habitName = habits[0].name;
+    if (!habits.length) { window.app?.showToast('Add a habit first', 'error'); return; }
+    const habit = habits[0];
     try {
       const r = await fetch('/api/social/duels', {
         method: 'POST', credentials: 'include',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ habitName, challengerName: window.app?.user?.name || 'You' })
+        body: JSON.stringify({
+          habitName: habit.name,
+          habitId: habit.id,
+          challengerName: window.app?.user?.name || 'You'
+        })
       });
       const d = await r.json();
-      this._safeToast(`Duel created! Share code: ${d.inviteCode}`, 'success');
+      window.app?.showToast(`Duel created! Share code: ${d.inviteCode}`, 'success');
       this._loadDuels();
-    } catch { this._safeToast('Error creating duel', 'error'); }
+    } catch { window.app?.showToast('Error creating duel', 'error'); }
   },
 
   async _joinDuel() {
@@ -1579,16 +1769,49 @@ window.socialModule = {
   async _createBond() {
     const habits = window.app?.habits || [];
     if (!habits.length) { window.app?.showToast('Add a habit first', 'error'); return; }
+    const habit = habits[0];
     try {
       const r = await fetch('/api/social/bonds', {
         method: 'POST', credentials: 'include',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ habitName: habits[0].name, user1Name: window.app?.user?.name || 'You' })
+        body: JSON.stringify({
+          habitName: habit.name,
+          habitId: habit.id,
+          user1Name: window.app?.user?.name || 'You'
+        })
       });
       const d = await r.json();
       window.app?.showToast(`Bond created! Share code: ${d.inviteCode}`, 'success');
       this._loadBonds();
     } catch { window.app?.showToast('Error creating bond', 'error'); }
+  },
+
+  async _leaveDuel(duelId) {
+    if (!confirm('Leave this duel? The duel will end.')) return;
+    try {
+      const r = await fetch(`/api/social/duels/${duelId}`, {method: 'DELETE', credentials: 'include'});
+      if (r.ok) {
+        window.app?.showToast('Duel ended', 'success');
+        this._loadDuels();
+      } else {
+        const err = await r.json();
+        window.app?.showToast(err.error || 'Error leaving duel', 'error');
+      }
+    } catch { window.app?.showToast('Error leaving duel', 'error'); }
+  },
+
+  async _leaveBond(bondId) {
+    if (!confirm('Dissolve this accountability bond?')) return;
+    try {
+      const r = await fetch(`/api/social/bonds/${bondId}`, {method: 'DELETE', credentials: 'include'});
+      if (r.ok) {
+        window.app?.showToast('Bond dissolved', 'success');
+        this._loadBonds();
+      } else {
+        const err = await r.json();
+        window.app?.showToast(err.error || 'Error dissolving bond', 'error');
+      }
+    } catch { window.app?.showToast('Error dissolving bond', 'error'); }
   }
 };
 
@@ -1764,9 +1987,22 @@ window.gameModule = {
 // ═══════════════════════════════════════════════════════════
 const _origLoad = ZenkoApp.prototype._loadAll;
 ZenkoApp.prototype._loadAll = async function() {
-  await _origLoad.call(this);
+  if (typeof _origLoad === 'function') {
+    await _origLoad.call(this);
+  }
   // Init AI coach habit selects
   if (window.aiCoachModule) window.aiCoachModule.init(this.habits);
+  // Preload social data for dashboard: initialize social module early
+  if (window.socialModule) {
+    try {
+      await window.socialModule.init(this.habits, true); // preload = true, no feed interval
+      // Copy loaded data to window.app for badge and other uses
+      window.app.socialDuels = window.socialModule.duels || [];
+      window.app.socialBonds = window.socialModule.bonds || [];
+      window.app.socialFeed = window.socialModule.feed || [];
+      window.app.socialPreloaded = true; // flag for dashboard
+    } catch (e) { console.error('Social init error:', e); }
+  }
   // Award XP for any habit-tree categories
   this.habits.forEach(h => {
     if (!h.category) return;

@@ -12,6 +12,7 @@ public interface HabitCompletionRepository extends JpaRepository<HabitCompletion
     List<HabitCompletion> findByUserId(Long userId);
 
     Optional<HabitCompletion> findByHabitIdAndCompletedDate(Long habitId, LocalDate date);
+    Optional<HabitCompletion> findByHabitIdAndUserIdAndCompletedDate(Long habitId, Long userId, LocalDate date);
 
     @Query("SELECT hc FROM HabitCompletion hc WHERE hc.userId = :userId AND hc.completedDate >= :from")
     List<HabitCompletion> findByUserIdSince(Long userId, LocalDate from);

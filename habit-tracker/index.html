@@ -345,6 +345,33 @@
             <div class="progress-dots" id="progressDots"></div>
           </div>
 
+          <!-- Social Activity Widget -->
+          <div class="card" id="socialDashCard" style="display:none">
+            <div class="card-header">
+              <h3 class="card-title">🌍 Social Activity</h3>
+              <button class="add-mini-btn" id="socialFromDash">View All</button>
+            </div>
+            <div class="social-dash-widget">
+              <div class="social-dash-stats">
+                <div class="sds-stat">
+                  <div class="sds-value" id="dashDuelsCount">0</div>
+                  <div class="sds-label">Active Duels</div>
+                </div>
+                <div class="sds-stat">
+                  <div class="sds-value" id="dashBondsCount">0</div>
+                  <div class="sds-label">Accountability Bonds</div>
+                </div>
+                <div class="sds-stat">
+                  <div class="sds-value" id="dashFeedCount">0</div>
+                  <div class="sds-label">Recent Completions</div>
+                </div>
+              </div>
+              <div class="social-dash-feed" id="dashSocialFeed">
+                <div class="feed-loading">Loading recent activity...</div>
+              </div>
+            </div>
+          </div>
+
           <!-- Two-column: Today's Habits + Weekly Heatmap -->
           <div class="dash-grid">
             <div class="card">
@@ -528,6 +555,30 @@
               <button class="ai-action-btn" id="runAlertBtn">Scan Now</button>
             </div>
             <div class="ai-result" id="alertResult" style="display:none"></div>
+          </div>
+          <!-- AI Habit Generator -->
+          <div class="card ai-feature-card">
+            <div class="card-header">
+              <div><h3 class="card-title">✨ AI Habit Generator</h3><p class="card-subtitle">Generate personalized habit lists for any goal</p></div>
+            </div>
+            <div class="ai-select-row">
+              <select class="form-select" id="habitPersona" style="flex:1">
+                <option value="healthy person">🏃 Healthy Person</option>
+                <option value="disciplined athlete">💪 Disciplined Athlete</option>
+                <option value="mindful practitioner">🧘 Mindful Practitioner</option>
+                <option value="productive professional">💼 Productive Professional</option>
+                <option value="student">📚 Student</option>
+                <option value="entrepreneur">🚀 Entrepreneur</option>
+                <option value="creative">🎨 Creative</option>
+                <option value="elderly">👴 Elderly & Active</option>
+              </select>
+              <input type="number" class="form-input" id="habitCount" value="5" min="1" max="10" style="width:70px" title="Number of habits" />
+            </div>
+            <div class="ai-select-row" style="margin-top:12px">
+              <input type="text" class="form-input" id="habitContext" placeholder="Additional context (e.g., 'I have back pain', 'I work night shifts', 'I want to lose weight')" style="flex:1" />
+              <button class="ai-action-btn" id="generateHabitsBtn">Generate</button>
+            </div>
+            <div id="generatedHabitsList" style="margin-top:16px"></div>
           </div>
           <!-- AI Chat -->
           <div class="ai-chat card">

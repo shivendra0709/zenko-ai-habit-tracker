@@ -4,6 +4,7 @@ import com.zenko.model.Habit;
 import com.zenko.model.HabitCompletion;
 import com.zenko.repository.HabitCompletionRepository;
 import com.zenko.repository.HabitRepository;
+import com.zenko.service.SocialUpdateService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,7 @@ public class HabitController {
 
     @Autowired private HabitRepository habitRepo;
     @Autowired private HabitCompletionRepository completionRepo;
+    @Autowired private SocialUpdateService socialUpdateService;
 
     // ── Resolve userId from session ──────────────────────────────
     private Long userId(HttpSession s) { return (Long) s.getAttribute("userId"); }
@@ -84,6 +86,7 @@ public class HabitController {
 
     // ── POST /api/habits/{id}/complete ───────────────────────────
     @PostMapping("/habits/{id}/complete")
+    @Transactional
     public ResponseEntity<?> toggleCompletion(
             @PathVariable Long id,
             @RequestBody Map<String, String> body,
@@ -95,12 +98,16 @@ public class HabitController {
         LocalDate date = LocalDate.parse(body.get("date")); // "YYYY-MM-DD"
 
         Optional<HabitCompletion> existing = completionRepo.findByHabitIdAndCompletedDate(id, date);
+        HabitCompletion completion;
         if (existing.isPresent()) {
             completionRepo.delete(existing.get());
+            // When un-completing, we don't decrement social streaks (simplified)
             return ResponseEntity.ok(Map.of("completed", false, "date", date.toString()));
         } else {
-            HabitCompletion c = new HabitCompletion(id, uid, date);
-            completionRepo.save(c);
+            completion = new HabitCompletion(id, uid, date);
+            completionRepo.save(completion);
+            // Trigger social streak updates
+            socialUpdateService.onHabitCompleted(completion);
             return ResponseEntity.ok(Map.of("completed", true, "date", date.toString()));
         }
     }
