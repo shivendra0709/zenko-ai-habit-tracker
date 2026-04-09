@@ -56,23 +56,25 @@ git push -u origin main
 ### 3.3 Deploy Backend
 1. Click "New" → "Web Service"
 2. Connect your GitHub repository
-3. Fill in:
+3. Select "Docker" as the runtime (NOT Node/Python/etc)
+4. Fill in:
    - **Name**: `zenko-backend`
-   - **Runtime**: `Java 21`
-   - **Build Command**: `cd habit-tracker-backend && mvn clean package -DskipTests`
-   - **Start Command**: `java -jar habit-tracker-backend/target/zenko-backend-1.0.0.jar`
-4. Add Environment Variables:
+   - **Region**: Oregon (or same as your DB)
+5. In the settings:
+   - **Dockerfile Path**: `./Dockerfile` (default)
+   - **Docker Build Context**: `.` (default - project root)
+6. Add Environment Variables:
    ```
    SPRING_PROFILES_ACTIVE=prod
    SPRING_JPA_HIBERNATE_DDL_AUTO=update
-   # DATABASE_URL will be auto-provided if using Render DB
+   DATABASE_URL=<will be auto-provided or paste your Render DB URL>
    JAVA_TOOL_OPTIONS=-Xmx512m
    GOOGLE_CLIENT_ID=<your_google_client_id>
    OPENROUTER_API_KEY=<your_openrouter_key>
    ```
-5. Click "Create Web Service"
-6. Wait for deployment (5-10 minutes)
-7. Copy the URL (e.g., `https://zenko-backend.onrender.com`)
+7. Click "Create Web Service"
+8. Wait for deployment (10-15 minutes - Docker build takes longer)
+9. Copy the URL (e.g., `https://zenko-backend.onrender.com`)
 
 ---
 
