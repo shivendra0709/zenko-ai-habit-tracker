@@ -1,0 +1,65 @@
+{
+  "name": "Zenko - AI Habit Tracker",
+  "short_name": "Zenko",
+  "description": "Track your daily, weekly & monthly habits with AI insights. Build streaks and discipline.",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#6366f1",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><defs><linearGradient id='grad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%236366f1;stop-opacity:1' /><stop offset='100%' style='stop-color:%238b5cf6;stop-opacity:1' /></linearGradient></defs><rect width='192' height='192' rx='48' fill='url(%23grad)'/><circle cx='96' cy='70' r='28' fill='white'/><path d='M96 95 L96 140' stroke='white' stroke-width='16' stroke-linecap='round'/><path d='M65 115 L50 145 M127 115 L142 145' stroke='white' stroke-width='14' stroke-linecap='round'/><rect x='45' y='125' width='102' height='50' rx='12' fill='white' opacity='0.85'/><line x1='55' y1='140' x2='137' y2='140' stroke='%236366f1' stroke-width='6' stroke-linecap='round'/><line x1='55' y1='160' x2='130' y2='160' stroke='%236366f1' stroke-width='6' stroke-linecap='round'/><path d='M135 138 L142 147 L155 130' stroke='%236366f1' stroke-width='5' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><defs><linearGradient id='grad2' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%236366f1;stop-opacity:1' /><stop offset='100%' style='stop-color:%238b5cf6;stop-opacity:1' /></linearGradient></defs><rect width='512' height='512' rx='128' fill='url(%23grad2)'/><circle cx='256' cy='180' r='75' fill='white'/><path d='M256 260 L256 380' stroke='white' stroke-width='40' stroke-linecap='round'/><path d='M160 310 L80 410 M352 310 L432 410' stroke='white' stroke-width='35' stroke-linecap='round'/><rect x='100' y='320' width='312' height='140' rx='30' fill='white' opacity='0.85'/><line x1='130' y1='360' x2='382' y2='360' stroke='%236366f1' stroke-width='15' stroke-linecap='round'/><line x1='130' y1='420' x2='350' y2='420' stroke='%236366f1' stroke-width='15' stroke-linecap='round'/><path d='M385 345 L410 380 L455 320' stroke='%236366f1' stroke-width='12' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect width='540' height='720' fill='%23f8f9fa'/><rect width='540' height='100' fill='%236366f1'/><text x='270' y='60' font-size='32' fill='white' text-anchor='middle' font-weight='bold'>Zenko</text><rect x='20' y='120' width='500' height='120' rx='8' fill='white' stroke='%236366f1' stroke-width='2'/><text x='30' y='155' font-size='16' font-weight='bold'>Today's Habits</text><text x='30' y='190' font-size='14' fill='%23666'>5 / 8 completed</text><text x='30' y='220' font-size='12' fill='%239ca3af'>Morning Run • Meditate • Read</text></svg>",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "categories": ["productivity", "lifestyle"],
+  "screenshots_small": [],
+  "screenshots_large": [],
+  "shortcuts": [
+    {
+      "name": "Add Habit",
+      "short_name": "Add",
+      "description": "Quickly add a new habit",
+      "url": "/index.html?action=add",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><circle cx='48' cy='48' r='48' fill='%236366f1'/><line x1='48' y1='30' x2='48' y2='66' stroke='white' stroke-width='5' stroke-linecap='round'/><line x1='30' y1='48' x2='66' y2='48' stroke='white' stroke-width='5' stroke-linecap='round'/></svg>",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Today's Habits",
+      "short_name": "Today",
+      "description": "Check today's habits",
+      "url": "/index.html?view=today",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><circle cx='48' cy='48' r='48' fill='%238b5cf6'/><circle cx='48' cy='48' r='30' fill='white'/><path d='M35 48 L42 55 L60 40' stroke='%238b5cf6' stroke-width='4' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false
+}

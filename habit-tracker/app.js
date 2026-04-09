@@ -155,7 +155,7 @@ class ZenkoApp {
     this.isApiMode = isApi;
     if (isApi) {
       // Load data from API
-      await this._loadFromAPI();
+      await this._loadAll();
     } else {
       // Demo: use localStorage
       localStorage.setItem('hf_user', JSON.stringify(user));
@@ -167,7 +167,7 @@ class ZenkoApp {
     this._toast('Welcome, ' + user.name + '! 🎉', 'success');
   }
 
-  async _loadFromAPI() {
+  async _loadAll() {
     try {
       const [hRes, cRes] = await Promise.all([
         fetch('/api/habits', { credentials: 'include' }),
@@ -175,7 +175,6 @@ class ZenkoApp {
       ]);
       this.habits = hRes.ok ? await hRes.json() : [];
       const rawComp = cRes.ok ? await cRes.json() : {};
-      // Convert string keys back to numbers for consistency
       this.completions = {};
       for (const [k, v] of Object.entries(rawComp)) {
         this.completions[parseInt(k)] = v;

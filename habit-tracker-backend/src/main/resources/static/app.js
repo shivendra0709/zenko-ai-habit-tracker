@@ -155,7 +155,7 @@ class ZenkoApp {
     this.isApiMode = isApi;
     if (isApi) {
       // Load data from API
-      await this._loadFromAPI();
+      await this._loadAll();
     } else {
       // Demo: use localStorage
       localStorage.setItem('hf_user', JSON.stringify(user));
@@ -167,7 +167,7 @@ class ZenkoApp {
     this._toast('Welcome, ' + user.name + '! 🎉', 'success');
   }
 
-  async _loadFromAPI() {
+  async _loadAll() {
     try {
       const [hRes, cRes] = await Promise.all([
         fetch('/api/habits', { credentials: 'include' }),
@@ -175,7 +175,6 @@ class ZenkoApp {
       ]);
       this.habits = hRes.ok ? await hRes.json() : [];
       const rawComp = cRes.ok ? await cRes.json() : {};
-      // Convert string keys back to numbers for consistency
       this.completions = {};
       for (const [k, v] of Object.entries(rawComp)) {
         this.completions[parseInt(k)] = v;
@@ -430,8 +429,6 @@ class ZenkoApp {
       case 'weekly': this._renderWeekly(); break;
       case 'monthly': this._renderMonthly(); break;
       case 'ai': this._renderAI(); break;
-      case 'social': window.socialModule && window.socialModule.init(this.habits); break;
-      case 'game': window.gameModule && window.gameModule.init(); break;
       case 'habits': this._renderAllHabits(); break;
     }
   }
@@ -449,9 +446,16 @@ class ZenkoApp {
   async _toggleCompletion(habitId, dateStr, checkbox) {
     if (!this.completions[habitId]) this.completions[habitId] = {};
     const wasDone = this._isCompleted(habitId, dateStr);
-    // Optimistic update UI
-    if (wasDone) { delete this.completions[habitId][dateStr]; if (checkbox) checkbox.classList.remove('done','checked'); }
-    else { this.completions[habitId][dateStr] = true; if (checkbox) { checkbox.classList.add('done','checked'); this._confetti(checkbox); } }
+    
+    // If already done, don't allow undo - just exit
+    if (wasDone) {
+      this._toast('Habit already completed for this day! ✅', 'info');
+      return;
+    }
+    
+    // Optimistic update UI (mark as done)
+    this.completions[habitId][dateStr] = true;
+    if (checkbox) { checkbox.classList.add('done','checked'); this._confetti(checkbox); }
 
     if (this.isApiMode) {
       try {
@@ -964,6 +968,8 @@ class ZenkoApp {
   _renderAI() {
     const grid = document.getElementById('aiInsightsGrid');
     if (!grid) return;
+    // Populate the autopsy habit select (in case init ran before AI tab was visible)
+    aiCoachModule._populate(document.getElementById('autopsyHabitSelect'), aiCoachModule._habits || window.app?.habits || []);
     grid.innerHTML = '<div class="ai-loading card"><div class="spin"></div> <span class="typewriter">Analyzing your habits…</span></div>';
     setTimeout(() => { grid.innerHTML = this._generateInsights().map(c => this._insightCard(c)).join(''); }, 800);
   }
@@ -1558,9 +1564,11 @@ window.aiCoachModule = {
     return colors[cat] || '#6366f1';
   },
 
-  init(habits, preload = false) {
-    // Populate habit selects
-    this._populate(document.getElementById('autopsyHabitSelect'), habits);
+  init(habits) {
+    // Store habits for later use (e.g., when AI view opens)
+    this._habits = habits || [];
+    // Populate habit selects (may be called before AI tab DOM is visible)
+    this._populate(document.getElementById('autopsyHabitSelect'), this._habits);
     // Check AI status
     fetch('/api/game/profile', {credentials:'include'})
       .then(r => r.json())

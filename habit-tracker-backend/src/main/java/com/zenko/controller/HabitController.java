@@ -100,9 +100,8 @@ public class HabitController {
         Optional<HabitCompletion> existing = completionRepo.findByHabitIdAndCompletedDate(id, date);
         HabitCompletion completion;
         if (existing.isPresent()) {
-            completionRepo.delete(existing.get());
-            // When un-completing, we don't decrement social streaks (simplified)
-            return ResponseEntity.ok(Map.of("completed", false, "date", date.toString()));
+            // Already completed - keep it marked (DO NOT UNDO)
+            return ResponseEntity.ok(Map.of("completed", true, "date", date.toString()));
         } else {
             completion = new HabitCompletion(id, uid, date);
             completionRepo.save(completion);

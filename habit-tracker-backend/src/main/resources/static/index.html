@@ -4,9 +4,16 @@
   <!-- Apply saved theme BEFORE any paint to avoid flash -->
   <script>(function(){var t=localStorage.getItem('hf_theme')||'light';document.documentElement.setAttribute('data-theme',t);}());</script>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="true" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Zenko" />
+  <meta name="theme-color" content="#6366f1" />
   <title>Zenko – AI Habit Tracker</title>
   <meta name="description" content="Track your daily, weekly, and monthly habits with AI-powered insights, streaks, and discipline scores." />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%236366f1'/></svg>" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><circle cx='96' cy='96' r='90' fill='%236366f1'/></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -191,22 +198,6 @@
           <span>AI Coach</span>
           <span class="ai-badge">AI</span>
         </button>
-        <button class="nav-btn" data-view="social" id="navSocial">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-          <span>Social</span>
-          <span class="nav-badge" id="socialBadge" style="display:none">!</span>
-        </button>
-        <button class="nav-btn" data-view="game" id="navGame">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="6" width="20" height="12" rx="2"/>
-            <path d="M10 10h4m-2-2v4"/><circle cx="17.5" cy="12" r=".5" fill="currentColor"/>
-          </svg>
-          <span>Game</span>
-          <span class="ai-badge" style="background:linear-gradient(135deg,#f97316,#eab308)">XP</span>
-        </button>
         <button class="nav-btn" data-view="habits" id="navHabits">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
@@ -343,33 +334,6 @@
               </div>
             </div>
             <div class="progress-dots" id="progressDots"></div>
-          </div>
-
-          <!-- Social Activity Widget -->
-          <div class="card" id="socialDashCard" style="display:none">
-            <div class="card-header">
-              <h3 class="card-title">🌍 Social Activity</h3>
-              <button class="add-mini-btn" id="socialFromDash">View All</button>
-            </div>
-            <div class="social-dash-widget">
-              <div class="social-dash-stats">
-                <div class="sds-stat">
-                  <div class="sds-value" id="dashDuelsCount">0</div>
-                  <div class="sds-label">Active Duels</div>
-                </div>
-                <div class="sds-stat">
-                  <div class="sds-value" id="dashBondsCount">0</div>
-                  <div class="sds-label">Accountability Bonds</div>
-                </div>
-                <div class="sds-stat">
-                  <div class="sds-value" id="dashFeedCount">0</div>
-                  <div class="sds-label">Recent Completions</div>
-                </div>
-              </div>
-              <div class="social-dash-feed" id="dashSocialFeed">
-                <div class="feed-loading">Loading recent activity...</div>
-              </div>
-            </div>
           </div>
 
           <!-- Two-column: Today's Habits + Weekly Heatmap -->
@@ -597,127 +561,6 @@
           </div>
         </section>
 
-        <!-- ──────── SOCIAL VIEW ──────── -->
-        <section class="view" id="socialView">
-          <div class="social-header card">
-            <h2 class="card-title" style="font-size:20px">🌍 Social Hub</h2>
-            <p class="card-subtitle">Duels · Accountability Bonds · Anonymous Global Feed</p>
-          </div>
-          <div class="social-tabs">
-            <button class="social-tab active" data-stab="feed">📡 Live Feed</button>
-            <button class="social-tab" data-stab="duels">⚔️ Habit Duels</button>
-            <button class="social-tab" data-stab="bonds">🤝 Accountability</button>
-          </div>
-          <!-- Feed -->
-          <div class="social-panel active" id="stab-feed">
-            <div class="card" style="padding:16px">
-              <div class="card-header">
-                <div><h3 class="card-title">🌐 Global Habit Feed</h3><p class="card-subtitle">Real-time anonymous completions from around the world</p></div>
-                <div class="feed-live-dot"><span></span>LIVE</div>
-              </div>
-              <div class="feed-list" id="globalFeed"><div class="feed-loading">🔄 Loading feed...</div></div>
-            </div>
-          </div>
-          <!-- Duels -->
-          <div class="social-panel" id="stab-duels">
-            <div class="card">
-              <div class="card-header">
-                <div><h3 class="card-title">⚔️ Habit Duels</h3><p class="card-subtitle">Challenge anyone to a 30-day duel. Loser sends a reward!</p></div>
-                <button class="ai-action-btn" id="createDuelBtn">+ New Duel</button>
-              </div>
-              <div id="duelsList"><div class="feed-loading">Loading duels...</div></div>
-            </div>
-            <div class="card" id="joinDuelCard">
-              <h3 class="card-title">🔗 Join a Duel</h3>
-              <div class="ai-select-row" style="margin-top:12px">
-                <input type="text" class="form-input" id="duelCodeInput" placeholder="Enter invite code (e.g. AB12CD34)" style="flex:2" />
-                <button class="ai-action-btn" id="joinDuelBtn">Join</button>
-              </div>
-            </div>
-          </div>
-          <!-- Bonds -->
-          <div class="social-panel" id="stab-bonds">
-            <div class="card">
-              <div class="card-header">
-                <div><h3 class="card-title">🤝 Accountability Bonds</h3><p class="card-subtitle">If either person misses — both lose their streak. Real accountability.</p></div>
-                <button class="ai-action-btn" id="createBondBtn">+ New Bond</button>
-              </div>
-              <div id="bondsList"><div class="feed-loading">Loading bonds...</div></div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ──────── GAME VIEW ──────── -->
-        <section class="view" id="gameView">
-          <!-- XP / Level Card -->
-          <div class="game-level-card card">
-            <div class="level-left">
-              <div class="level-badge" id="levelBadge">Lv.1</div>
-              <div>
-                <div class="level-title" id="levelTitle">Habit Novice</div>
-                <div class="level-xp" id="levelXP">0 / 100 XP</div>
-              </div>
-            </div>
-            <div class="level-right">
-              <div class="token-group">
-                <span class="token-icon">🛡️</span>
-                <span id="tokenCount">3</span>
-                <span class="token-label">Freeze Tokens</span>
-              </div>
-            </div>
-          </div>
-          <div class="level-bar-track"><div class="level-bar-fill" id="levelBarFill" style="width:0%"></div></div>
-
-          <!-- Skill Trees -->
-          <div class="card">
-            <h3 class="card-title" style="margin-bottom:16px">🌳 Skill Trees</h3>
-            <div class="skill-trees-grid">
-              <div class="skill-tree" data-skill="health">
-                <div class="skill-tree-icon">❤️</div>
-                <div class="skill-tree-name">Health</div>
-                <div class="skill-tree-level" id="healthLevel">Level 1</div>
-                <div class="skill-bar-track"><div class="skill-bar-fill" id="healthBar" style="width:0%;background:linear-gradient(90deg,#ef4444,#f97316)"></div></div>
-                <div class="skill-unlocks" id="healthUnlocks">🔒 Keep going to unlock</div>
-              </div>
-              <div class="skill-tree" data-skill="mind">
-                <div class="skill-tree-icon">🧠</div>
-                <div class="skill-tree-name">Mind</div>
-                <div class="skill-tree-level" id="mindLevel">Level 1</div>
-                <div class="skill-bar-track"><div class="skill-bar-fill" id="mindBar" style="width:0%;background:linear-gradient(90deg,#6366f1,#8b5cf6)"></div></div>
-                <div class="skill-unlocks" id="mindUnlocks">🔒 Keep going to unlock</div>
-              </div>
-              <div class="skill-tree" data-skill="wealth">
-                <div class="skill-tree-icon">💰</div>
-                <div class="skill-tree-name">Wealth</div>
-                <div class="skill-tree-level" id="wealthLevel">Level 1</div>
-                <div class="skill-bar-track"><div class="skill-bar-fill" id="wealthBar" style="width:0%;background:linear-gradient(90deg,#22c55e,#14b8a6)"></div></div>
-                <div class="skill-unlocks" id="wealthUnlocks">🔒 Keep going to unlock</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Streak Insurance -->
-          <div class="card">
-            <div class="card-header">
-              <div><h3 class="card-title">🛡️ Streak Insurance</h3><p class="card-subtitle">Use a freeze token to protect a streak when you miss a day</p></div>
-              <button class="ai-action-btn" id="useTokenBtn">Use Token 🛡️</button>
-            </div>
-            <div class="token-info">
-              <div class="token-display" id="tokenDisplay"></div>
-              <p class="token-tip">Earn tokens by completing <strong>bonus habits</strong> or achieving <strong>7-day streaks</strong></p>
-            </div>
-          </div>
-
-          <!-- Habit Quests -->
-          <div class="card">
-            <div class="card-header">
-              <div><h3 class="card-title">⚡ Habit Quests</h3><p class="card-subtitle">Weekly AI-generated challenges with XP rewards</p></div>
-              <button class="ai-action-btn" id="refreshQuestsBtn">New Quests</button>
-            </div>
-            <div class="quests-grid" id="questsGrid"><div class="feed-loading">Loading quests...</div></div>
-          </div>
-        </section>
-
         <!-- ──────── ALL HABITS VIEW ──────── -->
         <section class="view" id="habitsView">
           <div class="habits-toolbar">
@@ -856,6 +699,39 @@
 
   <!-- TOAST -->
   <div class="toast-stack" id="toastStack"></div>
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    // Register service worker for PWA support
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .then(reg => {
+          console.log('[PWA] Service Worker registered:', reg);
+          // Check for updates periodically
+          setInterval(() => reg.update(), 60000);
+        })
+        .catch(err => console.log('[PWA] Service Worker registration failed:', err));
+    }
+
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      setTimeout(() => {
+        if (window.app?.user?.id) {
+          Notification.requestPermission().then(perm => {
+            console.log('[PWA] Notification permission:', perm);
+          });
+        }
+      }, 3000);
+    }
+
+    // Detect when a new version is available
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.log('[PWA] New version available - refresh to update');
+        // Optional: Show update prompt to user
+      });
+    }
+  </script>
 
   <script src="app.js"></script>
 </body>

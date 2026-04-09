@@ -1,0 +1,35 @@
+# Render.com deployment configuration for Spring Boot backend
+
+services:
+  - type: web
+    name: zenko-backend
+    env: java
+    plan: free
+    javaVersion: 21
+    buildCommand: "mvn clean package -DskipTests"
+    startCommand: "java -jar target/zenko-backend-1.0.0.jar"
+    
+    envVars:
+      - key: JAVA_TOOL_OPTIONS
+        value: "-Xmx512m"
+      - key: SPRING_PROFILES_ACTIVE
+        value: "prod"
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: "update"
+      - key: SPRING_DATASOURCE_URL
+        value: "${DATABASE_URL}"
+      - key: SERVER_PORT
+        value: "8080"
+      # Firebase configuration (add these)
+      # - key: FIREBASE_CREDENTIALS
+      #   value: "${FIREBASE_CREDENTIALS_JSON}"
+      # - key: FIREBASE_DATABASE_URL
+      #   value: "https://your-project.firebaseio.com"
+
+    autoDeploy: true
+    
+databases:
+  - name: zenko-db
+    plan: free
+    databaseName: zenko_habits
+    postgresSQLVersion: "15"
