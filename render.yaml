@@ -6,8 +6,8 @@ services:
     env: java
     plan: free
     javaVersion: 21
-    buildCommand: "mvn clean package -DskipTests"
-    startCommand: "java -jar target/zenko-backend-1.0.0.jar"
+    buildCommand: "cd habit-tracker-backend && mvn clean package -DskipTests"
+    startCommand: "java -jar habit-tracker-backend/target/zenko-backend-1.0.0.jar"
     
     envVars:
       - key: JAVA_TOOL_OPTIONS

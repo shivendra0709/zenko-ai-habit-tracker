@@ -59,8 +59,8 @@ git push -u origin main
 3. Fill in:
    - **Name**: `zenko-backend`
    - **Runtime**: `Java 21`
-   - **Build Command**: `mvn clean package -DskipTests`
-   - **Start Command**: `java -jar target/zenko-backend-1.0.0.jar`
+   - **Build Command**: `cd habit-tracker-backend && mvn clean package -DskipTests`
+   - **Start Command**: `java -jar habit-tracker-backend/target/zenko-backend-1.0.0.jar`
 4. Add Environment Variables:
    ```
    SPRING_PROFILES_ACTIVE=prod
