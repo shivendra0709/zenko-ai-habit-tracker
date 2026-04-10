@@ -27,4 +27,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
 
 # Run with production profile by default
 ENV SPRING_PROFILES_ACTIVE=prod
-ENTRYPOINT ["sh", "-c", "java ${JAVA_OPTS} -jar app.jar"]
+CMD ["java", "-jar", "app.jar"]

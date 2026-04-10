@@ -6,7 +6,6 @@
     "context": "habit-tracker-backend"
   },
   "deploy": {
-    "numReplicas": 1,
-    "startCommand": "java ${JAVA_OPTS} -jar app.jar"
+    "numReplicas": 1
   }
 }
