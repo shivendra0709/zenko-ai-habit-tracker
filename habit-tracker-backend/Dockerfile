@@ -13,7 +13,7 @@ WORKDIR /app
 RUN apk add --no-cache curl
 
 # Copy jar from builder
-COPY --from=builder /app/target/*.jar app.jar
+COPY --from=builder /app/target/zenko-backend-1.0.0.jar app.jar
 
 # Create data directory for H2 (fallback) - will be overridden by PostgreSQL in prod
 RUN mkdir -p /app/data
